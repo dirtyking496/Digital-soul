@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DIGITAL SOUL</title>
+<style>
+body{margin:0;background:#0b1020;color:#eef3ff;font:15px system-ui}header,main{max-width:1100px;margin:auto;padding:20px}h1{letter-spacing:.12em}main{display:grid;grid-template-columns:1fr 1fr;gap:16px}section{background:#141e32;border:1px solid #30415f;border-radius:16px;padding:18px}label{display:block;margin:12px 0 6px;font-weight:650}input,select,textarea{width:100%;box-sizing:border-box;background:#091426;color:white;border:1px solid #405578;border-radius:9px;padding:10px}textarea{min-height:75px}button{padding:11px 14px;border:0;border-radius:9px;background:#796cff;color:white;font-weight:bold;margin:8px 6px 4px 0}button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#091426;padding:12px;border-radius:9px}.muted{color:#aebbd2;font-size:13px}img,audio{width:100%;margin-top:12px;border-radius:10px}@media(max-width:760px){main{grid-template-columns:1fr}}
+
+#world3d{width:100%;height:360px;display:block;background:#101a2b;border-radius:12px}
+.world-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.world-actions input{max-width:100%}
+.world-note{font-size:12px;color:#aebbd2;line-height:1.45}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://esm.sh/three@0.180.0","three/addons/":"https://esm.sh/three@0.180.0/examples/jsm/","@pixiv/three-vrm":"https://esm.sh/@pixiv/three-vrm@3.4.2?external=three"}}
+</script>
+</head><body>
+<header><h1>✦ DIGITAL SOUL</h1><p class="muted">Générateur de personnages — image IA et voix</p></header>
+<main><section>
+<h2>Personnage</h2>
+<label>Description *</label><textarea id="desc" placeholder="Décris le visage, les cheveux, le style, le caractère…"></textarea>
+<label>Âge adulte</label><input id="age" type="number" min="18" value="28">
+<label>Présentation</label><select id="gender"><option>Masculine</option><option>Féminine</option><option>Androgyne</option></select>
+<label>Cheveux</label><input id="hair" placeholder="Bruns, courts…">
+<label>Yeux</label><input id="eyes" placeholder="Verts…">
+<label>Morphologie</label><select id="body"><option>Naturelle</option><option>Fine</option><option>Athlétique</option><option>Musclée</option><option>Grande carrure</option></select>
+<label>Vêtements</label><input id="clothes" placeholder="Urbain, élégant…">
+<label>Photoréalisme : <span id="rv">95%</span></label><input id="realism" type="range" min="0" max="100" value="95">
+<label>Personnalité</label><textarea id="personality" placeholder="Drôle, calme, curieux…"></textarea>
+<h2>Voix</h2>
+<label>Style vocal</label><select id="tone"><option>Chaleureuse</option><option>Calme</option><option>Énergique</option><option>Grave et posée</option></select>
+<label>Langue</label><select id="lang"><option value="fr">Français</option><option value="en">Anglais</option></select>
+<label>Texte à prononcer</label><textarea id="say">Bonjour ! Je suis ton personnage DIGITAL SOUL. Ravi de faire ta connaissance.</textarea>
+<h2>Monde ouvert — paramètres</h2>
+<label>Univers</label><select id="world"><option>Ville moderne</option><option>Nature et campagne</option><option>Science-fiction</option><option>Fantasy</option></select>
+<label>Caméra</label><select id="camera"><option>Troisième personne</option><option>Première personne</option><option>Libre / cinématique</option></select>
+<label>Activités</label><input id="activities" value="marcher, discuter, travailler, explorer">
+<button id="build">Construire la configuration</button><button id="save">Télécharger JSON</button>
+<hr><button id="image">✨ Générer le portrait IA</button><button id="voice">🔊 Générer la voix</button>
+<p id="status" class="muted">Serveur IA en attente de configuration.</p>
+</section><section>
+<h2>Configuration</h2><pre id="config">Complète les champs puis construis la configuration.</pre>
+<h2>Résultat du personnage</h2><div id="result" class="muted">Le portrait généré apparaîtra ici.</div>
+
+<h2>Monde 3D et personnage autonome</h2>
+<canvas id="world3d"></canvas>
+<div class="world-actions">
+  <label style="margin:4px 0">Charger un avatar 3D (.vrm)
+    <input id="vrmFile" type="file" accept=".vrm,model/gltf-binary">
+  </label>
+  <button id="wander">▶ Activer la vie autonome</button>
+  <button id="stopWander">Ⅱ Pause</button>
+</div>
+<p class="world-note" id="worldStatus">Scène 3D de démonstration. Charge un avatar VRM pour voir un personnage animé. Sans avatar, une silhouette de démonstration est affichée.</p>
+<h2>Synchronisation des lèvres</h2>
+<p class="world-note">La synchronisation audio réagit au volume de la voix (ouverture/fermeture de la bouche). Pour une articulation phonème par phonème, il faudra ajouter un système de visèmes et un avatar VRM compatible.</p>
+<button id="lipSync">🔊 Tester la synchronisation des lèvres</button>
+
+</section></main>
+<script>
+const $=id=>document.getElementById(id);let current=null;
+$('realism').oninput=()=> $('rv').textContent=$('realism').value+'%';
+function makeConfig(){return {product:"DIGITAL SOUL",schema_version:"1.0",character:{description:$('desc').value,adult_age:Math.max(18,Number($('age').value)||18),presentation:$('gender').value,hair:$('hair').value,eyes:$('eyes').value,body_type:$('body').value,clothing:$('clothes').value,photorealism_percent:Number($('realism').value),personality:$('personality').value},voice:{language:$('lang').value,tone:$('tone').value},world:{setting:$('world').value,camera:$('camera').value,activities:$('activities').value.split(',').map(x=>x.trim()).filter(Boolean)}}}
+$('build').onclick=()=>{current=makeConfig();$('config').textContent=JSON.stringify(current,null,2);$('status').textContent='Configuration créée.'};
+$('save').onclick=()=>{const o=current||makeConfig();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));a.download='digital-soul-config.json';a.click();URL.revokeObjectURL(a.href)};
+async function api(path,body){$('status').textContent='Connexion au serveur…';const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw Error(d.error||'Erreur serveur');$('status').textContent='Génération terminée.';return d}
+$('image').onclick=async()=>{const o=current||makeConfig();if(!o.character.description.trim()){ $('status').textContent='Ajoute une description du personnage.';return;} $('image').disabled=true;try{const d=await api('/api/character-image',{configuration:o});$('result').innerHTML='<img alt="Portrait généré" src="'+d.imageUrl+'"><p class="muted">Généré avec '+d.model+'</p>'}catch(e){$('status').textContent=e.message}finally{$('image').disabled=false}};
+let latestAudio=null;
+$('voice').onclick=async()=>{$('voice').disabled=true;try{const d=await api('/api/voice',{text:$('say').value,language:$('lang').value,tone:$('tone').value});$('result').innerHTML='<audio id="generatedAudio" controls crossorigin="anonymous" src="'+d.audioUrl+'"></audio><p class="muted">Audio généré avec '+d.model+'</p>';latestAudio=$('generatedAudio');$('status').textContent='Voix prête. Lance la lecture puis clique sur « Tester la synchronisation des lèvres ».'}catch(e){$('status').textContent=e.message}finally{$('voice').disabled=false}};
+</script>
+<script type="module" src="/world.js"></script></body></html>
