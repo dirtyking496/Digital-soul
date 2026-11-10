@@ -1,10 +1,9 @@
 services:
   - type: web
-    name: digital-soul
+    name: forgepocket
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: npm start
-    envVars:
-      - key: FAL_KEY
-        sync: false
+    healthCheckPath: /api/health
+    autoDeploy: true
